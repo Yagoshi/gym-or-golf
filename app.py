@@ -17,19 +17,35 @@ if st.session_state.page == 'select':
     <!DOCTYPE html>
     <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <style>
-            body {
+            * {
                 margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                -webkit-tap-highlight-color: transparent;
+            }
+            body {
                 padding: 20px;
                 font-family: "Source Sans Pro", sans-serif;
+                overflow: hidden;
+                touch-action: none;
             }
             .container {
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                gap: 30px;
-                min-height: 400px;
+                gap: 20px;
+                min-height: 500px;
                 position: relative;
+                width: 100%;
+            }
+            @media (max-width: 768px) {
+                .container {
+                    flex-direction: column;
+                    gap: 30px;
+                    min-height: 600px;
+                }
             }
             .button {
                 padding: 20px 40px;
@@ -40,24 +56,33 @@ if st.session_state.page == 'select':
                 cursor: pointer;
                 transition: all 0.2s ease;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                user-select: none;
+                -webkit-user-select: none;
             }
             .button:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 6px 12px rgba(0,0,0,0.15);
             }
+            .button:active {
+                transform: translateY(0px);
+            }
             .golf {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
+                z-index: 1;
             }
             .gym {
                 background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
                 color: white;
+                z-index: 1;
             }
             .lazy {
                 background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
                 color: white;
                 position: absolute;
-                transition: all 0.1s ease-out;
+                transition: all 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                z-index: 2;
+                pointer-events: none;
             }
             .message {
                 position: fixed;
@@ -73,6 +98,23 @@ if st.session_state.page == 'select':
                 display: none;
                 z-index: 1000;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                animation: shake 0.5s;
+            }
+            @keyframes shake {
+                0%, 100% { transform: translateX(-50%) rotate(0deg); }
+                25% { transform: translateX(-50%) rotate(-5deg); }
+                75% { transform: translateX(-50%) rotate(5deg); }
+            }
+            @media (max-width: 768px) {
+                .button {
+                    padding: 18px 35px;
+                    font-size: 18px;
+                    min-width: 200px;
+                }
+                .message {
+                    font-size: 16px;
+                    padding: 12px 24px;
+                }
             }
         </style>
     </head>
@@ -89,70 +131,117 @@ if st.session_state.page == 'select':
             const container = document.getElementById('container');
             const messageDiv = document.getElementById('message');
             let attempts = 0;
+            let isMoving = false;
             
             const messages = [
                 "逃げちゃった😏",
                 "捕まえられないよ〜🤣",
                 "もう諦めたら？💪",
                 "運動しよう！🏃",
-                "しつこいなぁ😅"
+                "しつこいなぁ😅",
+                "まだやるの？🙄",
+                "無理無理！😎",
+                "諦めが悪いね😂",
+                "ゴロゴロは許さない！💢",
+                "健康第一！🌟"
             ];
 
             // 初期位置を設定
             function setInitialPosition() {
                 const containerRect = container.getBoundingClientRect();
                 lazyBtn.style.left = (containerRect.width / 2 - lazyBtn.offsetWidth / 2) + 'px';
-                lazyBtn.style.top = '50%';
-                lazyBtn.style.transform = 'translateY(-50%)';
+                lazyBtn.style.top = (containerRect.height / 2 - lazyBtn.offsetHeight / 2) + 'px';
             }
 
-            // ページ読み込み時に初期位置を設定
             window.addEventListener('load', setInitialPosition);
             window.addEventListener('resize', setInitialPosition);
 
-            // カーソルが近づいたときの処理
-            document.addEventListener('mousemove', function(e) {
+            // マウスとタッチの両方に対応
+            function handleMove(clientX, clientY) {
+                if (isMoving) return;
+                
                 const btnRect = lazyBtn.getBoundingClientRect();
                 const btnCenterX = btnRect.left + btnRect.width / 2;
                 const btnCenterY = btnRect.top + btnRect.height / 2;
                 
                 const distance = Math.sqrt(
-                    Math.pow(e.clientX - btnCenterX, 2) + 
-                    Math.pow(e.clientY - btnCenterY, 2)
+                    Math.pow(clientX - btnCenterX, 2) + 
+                    Math.pow(clientY - btnCenterY, 2)
                 );
                 
-                // 150px以内に近づいたら逃げる
-                if (distance < 150) {
+                // 200px以内に近づいたら逃げる（範囲拡大）
+                if (distance < 200) {
+                    isMoving = true;
                     attempts++;
                     showMessage();
-                    moveButton(e.clientX, e.clientY);
+                    moveButton(clientX, clientY);
+                    setTimeout(() => { isMoving = false; }, 150);
+                }
+            }
+
+            // マウス移動
+            document.addEventListener('mousemove', function(e) {
+                handleMove(e.clientX, e.clientY);
+            });
+
+            // タッチ移動（スマホ対応）
+            document.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+
+            // タッチ開始（スマホ対応）
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 0) {
+                    handleMove(e.touches[0].clientX, e.touches[0].clientY);
                 }
             });
 
-            function moveButton(mouseX, mouseY) {
+            function moveButton(inputX, inputY) {
                 const containerRect = container.getBoundingClientRect();
                 const btnRect = lazyBtn.getBoundingClientRect();
                 
-                // マウスから離れる方向を計算
-                const btnCenterX = btnRect.left + btnRect.width / 2;
-                const btnCenterY = btnRect.top + btnRect.height / 2;
+                // 現在のボタン中心位置
+                const btnCenterX = btnRect.left + btnRect.width / 2 - containerRect.left;
+                const btnCenterY = btnRect.top + btnRect.height / 2 - containerRect.top;
                 
-                const angle = Math.atan2(btnCenterY - mouseY, btnCenterX - mouseX);
+                // 入力位置から逃げる角度を計算
+                const inputRelativeX = inputX - containerRect.left;
+                const inputRelativeY = inputY - containerRect.top;
                 
-                // 移動距離をランダムに
-                const moveDistance = 150 + Math.random() * 100;
+                const angle = Math.atan2(btnCenterY - inputRelativeY, btnCenterX - inputRelativeX);
                 
-                let newX = btnCenterX + Math.cos(angle) * moveDistance - containerRect.left;
-                let newY = btnCenterY + Math.sin(angle) * moveDistance - containerRect.top;
+                // 移動距離（ランダム性を追加）
+                const moveDistance = 200 + Math.random() * 150;
+                
+                let newX = btnCenterX + Math.cos(angle) * moveDistance - btnRect.width / 2;
+                let newY = btnCenterY + Math.sin(angle) * moveDistance - btnRect.height / 2;
                 
                 // 画面内に収まるように調整
-                const margin = 20;
-                newX = Math.max(margin, Math.min(containerRect.width - btnRect.width - margin, newX));
-                newY = Math.max(margin, Math.min(containerRect.height - btnRect.height - margin, newY));
+                const margin = 30;
+                const maxX = containerRect.width - btnRect.width - margin;
+                const maxY = containerRect.height - btnRect.height - margin;
+                
+                newX = Math.max(margin, Math.min(maxX, newX));
+                newY = Math.max(margin, Math.min(maxY, newY));
+                
+                // 端に追い詰められたら反対側にワープ
+                if (newX <= margin || newX >= maxX || newY <= margin || newY >= maxY) {
+                    newX = containerRect.width / 2 - btnRect.width / 2;
+                    newY = containerRect.height / 2 - btnRect.height / 2;
+                    
+                    // さらにランダムにずらす
+                    newX += (Math.random() - 0.5) * 150;
+                    newY += (Math.random() - 0.5) * 150;
+                    
+                    newX = Math.max(margin, Math.min(maxX, newX));
+                    newY = Math.max(margin, Math.min(maxY, newY));
+                }
                 
                 lazyBtn.style.left = newX + 'px';
                 lazyBtn.style.top = newY + 'px';
-                lazyBtn.style.transform = 'none';
             }
 
             function showMessage() {
@@ -166,18 +255,34 @@ if st.session_state.page == 'select':
             }
 
             function selectOption(choice) {
-                // Streamlitに結果を送信
                 window.parent.postMessage({
                     type: 'streamlit:setComponentValue',
                     value: choice
                 }, '*');
             }
 
-            // 逃げるボタンがクリックされたとき（万が一捕まえた場合）
-            lazyBtn.addEventListener('click', function() {
+            // ボタンへの直接クリック/タップを完全に無効化
+            lazyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 attempts++;
                 showMessage();
-                moveButton(event.clientX, event.clientY);
+                const rect = lazyBtn.getBoundingClientRect();
+                moveButton(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                return false;
+            });
+
+            lazyBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+
+            // マウスオーバーでも逃げる
+            lazyBtn.addEventListener('mouseenter', function(e) {
+                attempts++;
+                showMessage();
+                moveButton(e.clientX, e.clientY);
             });
         </script>
     </body>
@@ -185,7 +290,7 @@ if st.session_state.page == 'select':
     """
     
     # コンポーネントを表示
-    selected = components.html(html_code, height=500)
+    selected = components.html(html_code, height=600)
     
     # 選択があった場合
     if selected:
@@ -199,7 +304,9 @@ elif st.session_state.page == 'result':
     st.title("🎉 そうだと思ったよ！")
     st.write("### やっぱり動く方を選んだね！")
     st.write("健康的な選択、素晴らしい！👍")
+    st.write("")
+    st.write("家でゴロゴロなんてダメだよ〜💪")
     
-    if st.button("もう一度選ぶ"):
+    if st.button("🔄 もう一度チャレンジ", use_container_width=True):
         st.session_state.page = 'select'
         st.rerun()
