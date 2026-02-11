@@ -1,8 +1,21 @@
-# 今日の予定アプリ
+# 逃げ回るボタンゲーム
 
-逃げ回る「家でゴロゴロ」ボタンで遊べるStreamlitアプリ
+「家でゴロゴロ」ボタンが逃げ回る楽しいアプリ
+```
 
-## デプロイ方法
-1. Streamlit Cloudにアクセス
-2. このリポジトリを接続
-3. `app.py`を指定してデプロイ
+### 3. Streamlit Cloudでデプロイ
+
+1. **Streamlit Cloudにアクセス**: https://share.streamlit.io/
+2. **GitHubでサインイン**（右上の「Sign in」）
+3. **「New app」をクリック**
+4. 以下を設定：
+   - **Repository**: 作成したリポジトリを選択
+   - **Branch**: `main`
+   - **Main file path**: `app.py`
+5. **「Deploy!」をクリック**
+
+### 4. 完成！
+
+数分後、こんな感じのURLが発行されます：
+```
+https://your-username-escaping-button-game-app-xxxxx.streamlit.app
