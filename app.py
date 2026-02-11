@@ -1,68 +1,58 @@
 import streamlit as st
 import random
 
-# ページの設定
 st.set_page_config(page_title="今日の予定", page_icon="🎯")
 
 # セッション状態の初期化
 if 'page' not in st.session_state:
     st.session_state.page = 'select'
-if 'button_position' not in st.session_state:
-    st.session_state.button_position = 50
+if 'lazy_attempts' not in st.session_state:
+    st.session_state.lazy_attempts = 0
 
 def go_to_result():
     st.session_state.page = 'result'
 
-def move_button():
-    # ボタンの位置をランダムに変更
-    st.session_state.button_position = random.randint(0, 100)
+def try_lazy():
+    st.session_state.lazy_attempts += 1
 
 # 選択ページ
 if st.session_state.page == 'select':
     st.title("今日は何する？🤔")
-    st.write("あなたの選択は...")
     
-    col1, col2, col3 = st.columns(3)
+    # 逃げようとした回数に応じてメッセージを表示
+    if st.session_state.lazy_attempts > 0:
+        messages = [
+            "ダメだよ〜😏",
+            "まだ諦めないの？🤣",
+            "ゴロゴロはナシ！💪",
+            "運動しよう！🏃",
+            "もう{}回も試したね...😅".format(st.session_state.lazy_attempts)
+        ]
+        idx = min(st.session_state.lazy_attempts - 1, len(messages) - 1)
+        st.warning(messages[idx])
     
-    with col1:
-        if st.button("⛳ ゴルフ行く", key="golf", use_container_width=True):
-            go_to_result()
-            st.rerun()
+    st.write("### あなたの選択は...")
     
-    with col2:
-        if st.button("💪 ジム行く", key="gym", use_container_width=True):
-            go_to_result()
-            st.rerun()
+    # ランダムな順序でボタンを配置
+    positions = list(range(3))
+    random.seed(st.session_state.lazy_attempts)
+    random.shuffle(positions)
     
-    with col3:
-        # 逃げ回るボタンのスタイル
-        st.markdown(f"""
-        <style>
-        div[data-testid="column"]:nth-child(3) button {{
-            position: relative;
-            transition: all 0.3s ease;
-        }}
-        </style>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🏠 家でゴロゴロ", key="home", on_click=move_button, use_container_width=True):
-            pass
+    cols = st.columns(3)
     
-    # マウスオーバーで逃げる効果をJavaScriptで実装
-    st.markdown("""
-    <script>
-    const buttons = window.parent.document.querySelectorAll('button');
-    buttons.forEach(button => {
-        if (button.textContent.includes('家でゴロゴロ')) {
-            button.addEventListener('mouseenter', function() {
-                const x = Math.random() * 200 - 100;
-                const y = Math.random() * 200 - 100;
-                this.style.transform = `translate(${x}px, ${y}px)`;
-            });
-        }
-    });
-    </script>
-    """, unsafe_allow_html=True)
+    buttons = [
+        ("⛳ ゴルフ行く", "golf", go_to_result),
+        ("💪 ジム行く", "gym", go_to_result),
+        ("🏠 家でゴロゴロ", "home", try_lazy)
+    ]
+    
+    for i, pos in enumerate(positions):
+        with cols[i]:
+            label, key, callback = buttons[pos]
+            if st.button(label, key=f"{key}_{st.session_state.lazy_attempts}", 
+                        use_container_width=True, on_click=callback):
+                if pos < 2:  # ゴルフかジム
+                    st.rerun()
 
 # 結果ページ
 elif st.session_state.page == 'result':
@@ -71,6 +61,9 @@ elif st.session_state.page == 'result':
     st.write("### やっぱり動く方を選んだね！")
     st.write("健康的な選択、素晴らしい！👍")
     
+    st.write(f"※ 家でゴロゴロを選ぼうとした回数: **{st.session_state.lazy_attempts}回** 😄")
+    
     if st.button("もう一度選ぶ"):
         st.session_state.page = 'select'
+        st.session_state.lazy_attempts = 0
         st.rerun()
