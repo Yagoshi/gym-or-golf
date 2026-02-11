@@ -284,8 +284,32 @@ if st.session_state.page == 'select':
                 lazyBtn.style.top = pos.y + 'px';
             }
 
+            // ゴルフ・ジムボタンへのマウス/タッチを検知して除外
+            function isOverFixedButton(clientX, clientY) {
+                const golfRect = golfBtn.getBoundingClientRect();
+                const gymRect = gymBtn.getBoundingClientRect();
+                
+                // 固定ボタンの範囲内かチェック（余裕を持たせる）
+                const isOverGolf = clientX >= golfRect.left - 20 && 
+                                   clientX <= golfRect.right + 20 &&
+                                   clientY >= golfRect.top - 20 && 
+                                   clientY <= golfRect.bottom + 20;
+                
+                const isOverGym = clientX >= gymRect.left - 20 && 
+                                  clientX <= gymRect.right + 20 &&
+                                  clientY >= gymRect.top - 20 && 
+                                  clientY <= gymRect.bottom + 20;
+                
+                return isOverGolf || isOverGym;
+            }
+
             // タッチが近づいたら逃げる（スマホメイン）
             function handleTouch(clientX, clientY, isTouchStart = false) {
+                // 固定ボタンの上にいる場合は逃げない
+                if (isOverFixedButton(clientX, clientY)) {
+                    return;
+                }
+                
                 const btnRect = lazyBtn.getBoundingClientRect();
                 const btnCenterX = btnRect.left + btnRect.width / 2;
                 const btnCenterY = btnRect.top + btnRect.height / 2;
@@ -295,8 +319,8 @@ if st.session_state.page == 'select':
                     Math.pow(clientY - btnCenterY, 2)
                 );
                 
-                // スマホ用: 300px圏内で即座に逃げる
-                const escapeDistance = window.innerWidth <= 768 ? 300 : 250;
+                // スマホ用: 200px圏内で逃げる（距離を短縮）
+                const escapeDistance = window.innerWidth <= 768 ? 200 : 150;
                 
                 if (distance < escapeDistance) {
                     attempts++;
@@ -388,10 +412,13 @@ if st.session_state.page == 'select':
 
             function selectOption(choice) {
                 clearInterval(autoMoveInterval);
-                window.parent.postMessage({
-                    type: 'streamlit:setComponentValue',
-                    value: choice
-                }, '*');
+                // 少し待ってからStreamlitに送信（確実に送信するため）
+                setTimeout(() => {
+                    window.parent.postMessage({
+                        type: 'streamlit:setComponentValue',
+                        value: choice
+                    }, '*');
+                }, 100);
             }
 
             // タッチイベント（スマホメイン）
@@ -438,7 +465,7 @@ if st.session_state.page == 'select':
                 lazyBtn.style.left = pos.x + 'px';
                 lazyBtn.style.top = pos.y + 'px';
                 
-                // 0.6秒ごとに自動で動く（より速く）
+                // 0.6秒ごとに自動で動く
                 autoMoveInterval = setInterval(autoMove, 600);
             });
 
@@ -452,14 +479,13 @@ if st.session_state.page == 'select':
     """
     
     # コンポーネントを表示
-    selected = components.html(html_code, height=750)
+    selected = components.html(html_code, height=750, scrolling=False)
     
-    # 選択があった場合
+    # 選択があった場合（デバッグ用ログ追加）
     if selected:
-        if selected in ['golf', 'gym']:
-            st.session_state.choice = selected
-            st.session_state.page = 'result'
-            st.rerun()
+        st.session_state.choice = selected
+        st.session_state.page = 'result'
+        st.rerun()
 
 # 結果ページ
 elif st.session_state.page == 'result':
